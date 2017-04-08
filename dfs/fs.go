@@ -10,6 +10,7 @@ import (
 	fusefs "bazil.org/fuse/fs"
 
 	"github.com/aphistic/docfs/dfs/db"
+	"github.com/efritz/glock"
 )
 
 type nodeType int
@@ -31,8 +32,11 @@ type DocFS struct {
 	inodeCount uint64
 	inodes     map[nodeType]map[uint64]uint64
 
-	root *root
-	fsdb *db.DB
+	fsRoot string
+	root   *root
+	fsdb   *db.DB
+
+	clock glock.Clock
 }
 
 type node struct {
@@ -58,6 +62,10 @@ func NewDocFS(fsRoot string) (*DocFS, error) {
 
 	fs := &DocFS{
 		inodes: make(map[nodeType]map[uint64]uint64),
+
+		fsRoot: fsRoot,
+
+		clock: glock.NewRealClock(),
 	}
 	fs.root = newRoot(fs)
 	fs.fsdb = fsdb
@@ -90,6 +98,26 @@ func (f *DocFS) getInode(node nodeType, id uint64) uint64 {
 	fmt.Printf("Nodes: %+v\n", f.inodes)
 
 	return inode
+}
+
+func (f *DocFS) openScratch(id uint64) (*os.File, error) {
+	scratchRoot := path.Join(f.fsRoot, "scratch")
+	docPath := path.Join(scratchRoot, fmt.Sprintf("%d", id))
+	fmt.Printf("scratch path: %s\n", docPath)
+
+	if _, err := os.Stat(scratchRoot); os.IsNotExist(err) {
+		err = os.MkdirAll(scratchRoot, 0755)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	file, err := os.OpenFile(docPath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
 }
 
 func (f *DocFS) Close() error {

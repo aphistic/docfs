@@ -2,8 +2,6 @@ package db
 
 import (
 	"database/sql"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func migrateDb(dbPath string) error {
@@ -54,6 +52,21 @@ func migrateDb(dbPath string) error {
 			PRIMARY KEY(year, month, day),
 			FOREIGN KEY(year, month) REFERENCES month(year, month)
 		);
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE  scratch (
+			scratch_id INTEGER,
+			name TEXT,
+			year INTEGER,
+			month INTEGER,
+			day INTEGER,
+			created TEXT,
+			PRIMARY KEY(scratch_id)
+		)
 	`)
 	if err != nil {
 		return err

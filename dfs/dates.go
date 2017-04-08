@@ -240,11 +240,24 @@ func (d *fsDay) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 
 func (d *fsDay) Lookup(ctx context.Context, name string) (fusefs.Node, error) {
 	return nil, fuse.ENOENT
-
 }
 
 func (d *fsDay) Create(ctx context.Context, req *fuse.CreateRequest, res *fuse.CreateResponse) (fusefs.Node, fusefs.Handle, error) {
-	doc := newFsDoc(d.fs, 0, req.Name)
+	curTime := d.fs.clock.Now()
 
-	return doc, nil, nil
+	y := curTime.Year()
+	m := int(curTime.Month())
+	day := curTime.Day()
+
+	sID, err := d.fs.fsdb.CreateScratch(req.Name, y, m, day, curTime)
+	if err != nil {
+		return nil, nil, fuse.ENOENT
+	}
+	doc := newScratchDoc(d.fs, sID)
+	err = doc.Open()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return doc, doc, nil
 }

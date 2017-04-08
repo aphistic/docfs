@@ -121,3 +121,7 @@ func (d *fsDoc) Attr(ctx context.Context, attr *fuse.Attr) error {
 	attr.Mode = 0755
 	return nil
 }
+
+func moveScratchDoc() error {
+
+}
